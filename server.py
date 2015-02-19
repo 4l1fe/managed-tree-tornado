@@ -21,13 +21,13 @@ class MainHandler(Init, RequestHandler):
             start_lvl = int(self.get_query_argument('lvl', 1))
         except ValueError:
             start_lvl = 1
-        self.cur.execute("""select max(nlevel(code)) from okato;;""")
+        self.cur.execute("""SELECT max(nlevel(code)) FROM okato;;""")
         lvls = self.cur.fetchone()[0]
         lvls = range(1, lvls+1)
-        self.cur.execute("""select replace(ltree2text(t.code), '.', '_') as code, nlevel(t.code) as lvl, t.name
-                            from (select code, name from okato
-                                  where code ~ '*{0,%s}'
-                                  order by code limit %s) as t;""", (start_lvl, self.page_rows_limit))  # replace() из-за ошибки в поиске по селектору
+        self.cur.execute("""SELECT replace(ltree2text(t.code), '.', '_') AS code, nlevel(t.code) AS lvl, t.name
+                            FROM (SELECT code, name FROM okato
+                                  WHERE code ~ '*{0,%s}'
+                                  ORDER BY code LIMIT %s) AS t;""", (start_lvl, self.page_rows_limit))  # replace() из-за ошибки в поиске по селектору
 
         column_names = [c[0] for c in self.cur.description]
         rows = [dict(zip(column_names, row)) for row in self.cur]
@@ -39,10 +39,10 @@ class MainHandler(Init, RequestHandler):
         except ValueError:
             lvl = 0
         if lvl:
-            self.cur.execute("""select replace(ltree2text(t.code), '.', '_') as code, nlevel(t.code) as lvl, t.name
-                                from (select code, name from okato
-                                      where code ~ '*{0,%s}'
-                                      order by code limit %s) as t;""", (lvl, self.page_rows_limit))
+            self.cur.execute("""SELECT replace(ltree2text(t.code), '.', '_') AS code, nlevel(t.code) AS lvl, t.name
+                                FROM (SELECT code, name FROM okato
+                                      WHERE code ~ '*{0,%s}'
+                                      ORDER BY code LIMIT %s) AS t;""", (lvl, self.page_rows_limit))
 
             column_names = [c[0] for c in self.cur.description]
             rows = [dict(zip(column_names, row)) for row in self.cur]  # при сериализации в json порциями возникают ошибки
@@ -53,41 +53,41 @@ class MainHandler(Init, RequestHandler):
 class ManageHandler(Init, RequestHandler):
 
     def post(self):
-        code = self.get_body_argument('code').replace('_', '.')  # из-за ошибки в поиске по селектору
-        name = self.get_body_argument('name')
-        new_name = self.get_body_argument('new_name')
-        if code and name and new_name:
-            self.cur.execute("""update okato
-                                set name=%s
-                                where code=%s and name=%s;""", (new_name, code, name))
+        code = self.get_body_argument('code').strip().replace('_', '.')  # из-за ошибки в поиске по селектору
+        name = self.get_body_argument('name').strip()
+        new_name = self.get_body_argument('new_name').strip()
+        if all((code, name, new_name)):
+            self.cur.execute("""UPDATE okato
+                                SET name=%s
+                                WHERE code=%s AND name=%s;""", (new_name, code, name))
             self.conn.commit()
             self.write({'success': True})
         self.flush()
 
     def delete(self):
-        code = self.get_query_argument('code').replace('_', '.')
-        name = self.get_query_argument('name')
-        if name:
-            self.cur.execute("""delete from okato
-                                where code=%s and name=%s;""", (code, name))
+        code = self.get_query_argument('code').strip().replace('_', '.')
+        if code:
+            self.cur.execute("""DELETE FROM okato
+                                WHERE code <@ %s
+                                RETURNING replace(ltree2text(code), '.','_') AS code;""", (code,))
             self.conn.commit()
-            self.write({'success': True})
+            rows = self.cur.fetchall()
+            self.write({'rows': rows})
         self.flush()
 
 
 class SearchHandler(Init, RequestHandler):
 
     def get(self):
-        # TODO: искать вместе с родителями, чтобы выводилась полная иерархия до искомого элемента
-        st = self.get_query_argument('searched_text')
+        st = self.get_query_argument('searched_text', '').strip()
         like_st = '%{}%'.format(st)  # mogrify() не справляется с такой подстановкой
         if st:
-            query = self.cur.mogrify("""select replace(ltree2text(code), '.', '_') as code, nlevel(code) as lvl, name
-                                        from okato
-                                        where code @> (select code from okato
-                                                       where name ilike %s
-                                                       order by code limit %s)
-                                        order by code;""", (like_st, self.page_rows_limit))
+            query = self.cur.mogrify("""SELECT replace(ltree2text(code), '.', '_') AS code, nlevel(code) AS lvl, name
+                                        FROM okato
+                                        WHERE code @> ARRAY(SELECT code
+                                                            FROM okato
+                                                            WHERE name ILIKE %s
+                                                            ORDER BY code LIMIT %s);""", (like_st, self.page_rows_limit))
             self.cur.execute(query)
             column_names = [c[0] for c in self.cur.description]
             rows = [dict(zip(column_names, row)) for row in self.cur]
