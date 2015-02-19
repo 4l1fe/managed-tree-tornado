@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Tree</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="/static/tree.js"></script>
+    <style>
+    {% for lvl in lvls %}
+        div.l{{ lvl }} {
+            margin-left: {{ 2*lvl}}%;
+        }
+    {% end %}
+    </style>
+</head>
+
+<body>
+    <select size="1">
+    {% for lvl in lvls %}
+        {% if lvl == start_lvl %}
+            <option selected value="{{ lvl }}">{{ lvl }}</option>
+        {% else %}
+            <option value="{{ lvl }}">{{ lvl }}</option>
+        {% end %}
+    {% end %}
+    </select>
+
+    <input type="text" style="display: inline">
+
+    <div id="root">
+    {% for row in rows %}
+        <div class="l{{ row['lvl'] }}" id="{{ row['code'] }}">{{ row['name'] }} L{{ row['lvl'] }}
+        <button class="edit">edit</button>
+        <button class="delete">delete</button>
+        </div>
+    {% end %}
+    </div>
+</body>
+</html>
