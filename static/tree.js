@@ -1,6 +1,6 @@
 var edit = function() {
     var div = $(this).parent(),
-        code = div.attr('id'), name = div.text().replace(/ L[0-9].*/, ''),
+        code = div.attr('id'), name = div.text().split(/ L[0-9]+/)[0],
         new_name = prompt('Новое имя:', name);
 
     $.post('http://127.0.0.1:8888/manage', {code: code, name: name, new_name: new_name})
@@ -16,23 +16,25 @@ var edit = function() {
 
 var del = function() {
     var div = $(this).parent(),
-        code = div.attr('id'), name = div.text().replace(/ L[0-9].*/, '');
+        code = div.attr('id');
 
-    $.ajax({url: 'http://127.0.0.1:8888/manage?' + $.param({code: code, name: name}),
-            type: 'DELETE'})
+    $.ajax({type: 'DELETE',
+            url: 'http://127.0.0.1:8888/manage?' + $.param({code: code})})
     .fail(function(jqxhr, status, error) {
         alert(error);
     })
     .done(function(data, status, jqxhr) {
-        if (data['success']) {
-            div.remove();
-        }
+        if (data['rows']) {
+            $.each(data['rows'], function(index, value) {
+                $('#'+value).remove();
+            });
+        };
     });
 };
 
 var search = function(event) {
     if(event.which == 13) {
-        var searched_text = $(this).val();
+        var searched_text = $(this).val().trim();
         if (searched_text) {
             $.get('http://127.0.0.1:8888/search?' + $.param({searched_text: searched_text}))
                 .fail(function(jqxhr, status, error) {
@@ -48,7 +50,6 @@ var search = function(event) {
                         '<button class="delete">delete</button>' +
                         '</div>');
                     });
-                    //root.text().replace(/.*.*/g, '<span') // подсветка
                     $('button.edit').on('click', edit);
                     $('button.delete').on('click', del);
                     }
@@ -78,7 +79,7 @@ var load_data = function() {
         });
 };
 
-$(function() { // регистрация при рендеринге
+$(function() { // регистрация после рендеринга
     $('select').on('change', load_data);
     $('input').on('keypress', search);
     $('button.edit').on('click', edit);
