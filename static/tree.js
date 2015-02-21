@@ -10,7 +10,9 @@ var edit = function() {
         })
         .done(function (data, status, jqxhr) {
             if (data['success']) {
-                div.attr('name', new_name).text(new_name); // удаляет кнопки!!!
+                div.html(div.html().replace(name, new_name));  // из-за переписывания сносятся обработчики
+                div.children('.edit').on('click', edit);
+                div.children('.delete').on('click', del);
             }
         });
 };
