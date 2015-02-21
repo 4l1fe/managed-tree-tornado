@@ -11,16 +11,14 @@ def main():
     cur = conn.cursor()
     cur.execute("""DROP TABLE IF EXISTS okato;
                    CREATE EXTENSION IF NOT EXISTS ltree;  /*# необходим установленный системный пакет postgresql-contrib*/
-                   CREATE TABLE IF NOT EXISTS okato (
+                   CREATE TABLE okato (
                           id serial primary key,
                           code ltree,
                           razdel smallint,
                           name varchar,
                           centrum varchar,
                           name_vector tsvector);
-                   DELETE FROM okato;""")
-        # cur.execute("""create index name_vector_idx on okato using gin(name_vector);""")
-
+                   CREATE INDEX name_vector_idx ON okato USING gin(name_vector);""")
     conn.commit()
 
     #TODO: запилить на генераторе
@@ -42,6 +40,7 @@ def main():
 
     args = ','.join([cur.mogrify("(%s,%s,%s,%s, (to_tsvector('russian', %s)))", row).decode() for row in okato])
     cur.execute("""INSERT INTO okato (code, razdel, name, centrum, name_vector) VALUES """ + args)  # мульти вставка
+    cur.execute("""DELETE FROM okato where name like '%/';""")
     conn.commit()
 
 
