@@ -17,14 +17,12 @@ def main():
                           razdel smallint,
                           name varchar,
                           centrum varchar,
-                          name_vector tsvector);
-                   CREATE INDEX name_vector_idx ON okato USING gin(name_vector);""")
+                          name_vector tsvector);""")
     conn.commit()
 
-    #TODO: запилить на генераторе
-    with open('okato_utf.csv') as file:
-        okato = []
-        reader = csv.DictReader(file, delimiter=';')
+    okato_file = open('okato_utf.csv')
+    reader = csv.DictReader(okato_file, delimiter=';')
+    def okato(reader):
         for i, row in enumerate(reader, start=1):
             razdel, name, centrum, name_vector = row['#Razdel'], row['Name1'], row['Centrum'], row['Name1']
             code, code1, code2, code3 = [row['Ter'].lstrip('0')], row['Kod1'], row['Kod2'], row['Kod3']
@@ -35,12 +33,17 @@ def main():
             if not int(code3) == 0:
                 code.append(code3)
             code = '.'.join(code)
-            okato.append([code, razdel, name, centrum, name_vector])
+            yield [code, razdel, name, centrum, name_vector]
             # if i >= 20000: break
 
-    args = ','.join([cur.mogrify("(%s,%s,%s,%s, (to_tsvector('russian', %s)))", row).decode() for row in okato])
+    okato_gen = okato(reader)
+    args = ','.join([cur.mogrify("(%s,%s,%s,%s, (to_tsvector('russian', %s)))", row).decode() for row in okato_gen])
     cur.execute("""INSERT INTO okato (code, razdel, name, centrum, name_vector) VALUES """ + args)  # мульти вставка
+    conn.commit()
+    okato_file.close()
     cur.execute("""DELETE FROM okato where name like '%/';""")
+    conn.commit()
+    cur.execute("""CREATE INDEX name_vector_idx ON okato USING gin(name_vector);""")
     conn.commit()
 
 
