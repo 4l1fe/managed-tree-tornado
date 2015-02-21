@@ -7,18 +7,20 @@ dsn = 'dbname={dbname} host={host} user={user} password={password}'.format(**db_
 
 
 def main():
-    #TODO: построить индекс
     conn = psycopg2.connect(dsn)
     cur = conn.cursor()
-    cur.execute("""drop table if exists okato;""")
-    cur.execute("""create extension if not exists ltree;""")  # необходим установленный системный пакет postgresql-contrib
-    cur.execute("""create table if not exists okato (
+    cur.execute("""DROP TABLE IF EXISTS okato;
+                   CREATE EXTENSION IF NOT EXISTS ltree;  /*# необходим установленный системный пакет postgresql-contrib*/
+                   CREATE TABLE IF NOT EXISTS okato (
                           id serial primary key,
                           code ltree,
                           razdel smallint,
                           name varchar,
-                          centrum varchar);""")
-    cur.execute("""delete from okato;""")
+                          centrum varchar,
+                          name_vector tsvector);
+                   DELETE FROM okato;""")
+        # cur.execute("""create index name_vector_idx on okato using gin(name_vector);""")
+
     conn.commit()
 
     #TODO: запилить на генераторе
@@ -26,7 +28,7 @@ def main():
         okato = []
         reader = csv.DictReader(file, delimiter=';')
         for i, row in enumerate(reader, start=1):
-            razdel, name, centrum = row['#Razdel'], row['Name1'], row['Centrum']
+            razdel, name, centrum, name_vector = row['#Razdel'], row['Name1'], row['Centrum'], row['Name1']
             code, code1, code2, code3 = [row['Ter'].lstrip('0')], row['Kod1'], row['Kod2'], row['Kod3']
             if not int(code1) == 0:  # убираем лишние ltree labels
                 code.append(code1)
@@ -35,11 +37,11 @@ def main():
             if not int(code3) == 0:
                 code.append(code3)
             code = '.'.join(code)
-            okato.append([code, razdel, name, centrum])
-            if i >= 20000: break
+            okato.append([code, razdel, name, centrum, name_vector])
+            # if i >= 20000: break
 
-    args = ','.join([cur.mogrify("(%s,%s,%s,%s)", row).decode() for row in okato])
-    cur.execute("""insert into okato (code, razdel, name, centrum) values """ + args)  # мульти вставка
+    args = ','.join([cur.mogrify("(%s,%s,%s,%s, (to_tsvector('russian', %s)))", row).decode() for row in okato])
+    cur.execute("""INSERT INTO okato (code, razdel, name, centrum, name_vector) VALUES """ + args)  # мульти вставка
     conn.commit()
 
 

@@ -79,15 +79,15 @@ class ManageHandler(Init, RequestHandler):
 class SearchHandler(Init, RequestHandler):
 
     def get(self):
-        st = self.get_query_argument('searched_text', '').strip()
-        like_st = '%{}%'.format(st)  # mogrify() не справляется с такой подстановкой
+        st = self.get_query_argument('searched_text', '').strip().replace(' ', ' & ')
+        # like_st = '%{}%'.format(st)  # mogrify() не справляется с такой подстановкой
         if st:
             query = self.cur.mogrify("""SELECT replace(ltree2text(code), '.', '_') AS code, nlevel(code) AS lvl, name
                                         FROM okato
                                         WHERE code @> ARRAY(SELECT code
                                                             FROM okato
-                                                            WHERE name ILIKE %s
-                                                            ORDER BY code LIMIT %s);""", (like_st, self.page_rows_limit))
+                                                            WHERE name_vector @@ plainto_tsquery('russian', %s)
+                                                            ORDER BY code LIMIT %s);""", (st, self.page_rows_limit))
             self.cur.execute(query)
             column_names = [c[0] for c in self.cur.description]
             rows = [dict(zip(column_names, row)) for row in self.cur]

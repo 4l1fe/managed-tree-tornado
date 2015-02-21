@@ -1,6 +1,7 @@
 var edit = function() {
     var div = $(this).parent(),
-        code = div.attr('id'), name = div.text().split(/ L[0-9]+/)[0],
+        code = div.attr('id'),
+        name = div.text().split(/ L[0-9]+/)[0],
         new_name = prompt('Новое имя:', name);
 
     $.post('http://127.0.0.1:8888/manage', {code: code, name: name, new_name: new_name})
