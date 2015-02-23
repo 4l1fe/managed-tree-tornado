@@ -10,7 +10,7 @@ class Init:
     def initialize(self):
         self.conn = psycopg2.connect(dsn)
         self.cur = self.conn.cursor()
-        self.page_rows_limit = 2000;
+        self.limit = 2000;
 
 
 class MainHandler(Init, RequestHandler):
@@ -21,14 +21,17 @@ class MainHandler(Init, RequestHandler):
             start_lvl = int(self.get_query_argument('lvl', 1))
         except ValueError:
             start_lvl = 1
-        self.cur.execute("""SELECT max(nlevel(code)) FROM okato;;""")
+        self.cur.execute("""SELECT max(nlevel(code))
+                            FROM okato;""")
         lvls = self.cur.fetchone()[0]
         lvls = range(1, lvls+1)
-        self.cur.execute("""SELECT replace(ltree2text(t.code), '.', '_') AS code, nlevel(t.code) AS lvl, t.name
-                            FROM (SELECT code, name FROM okato
-                                  WHERE code ~ '*{0,%s}'
-                                  ORDER BY code LIMIT %s) AS t;""", (start_lvl, self.page_rows_limit))  # replace() из-за ошибки в поиске по селектору
-
+        self.cur.execute("""SELECT replace(ltree2text(code), '.', '_') AS code,
+                                   nlevel(code) AS lvl,
+                                   name
+                            FROM okato
+                            WHERE code ~ '*{0,%s}'
+                            ORDER BY code LIMIT %s;""", (start_lvl, self.limit))  # replace() из-за ошибки
+                                                                                  # в поиске по селектору
         column_names = [c[0] for c in self.cur.description]
         rows = [dict(zip(column_names, row)) for row in self.cur]
         self.render("static/tree.html", rows=rows, lvls=lvls, start_lvl=start_lvl)
@@ -39,14 +42,16 @@ class MainHandler(Init, RequestHandler):
         except ValueError:
             lvl = 0
         if lvl:
-            self.cur.execute("""SELECT replace(ltree2text(t.code), '.', '_') AS code, nlevel(t.code) AS lvl, t.name
-                                FROM (SELECT code, name FROM okato
-                                      WHERE code ~ '*{0,%s}'
-                                      ORDER BY code LIMIT %s) AS t;""", (lvl, self.page_rows_limit))
+            self.cur.execute("""SELECT replace(ltree2text(code), '.', '_') AS code,
+                                       nlevel(code) AS lvl,
+                                       name
+                                FROM okato
+                                WHERE code ~ '*{0,%s}'
+                                ORDER BY code LIMIT %s;""", (lvl, self.limit))
 
             column_names = [c[0] for c in self.cur.description]
-            rows = [dict(zip(column_names, row)) for row in self.cur]  # при сериализации в json порциями возникают ошибки
-            self.write({'rows': rows})
+            rows = [dict(zip(column_names, row)) for row in self.cur]  # при сериализации в json порциями
+            self.write({'rows': rows})                                 # возникают ошибки
         self.flush()
 
 
@@ -79,15 +84,19 @@ class ManageHandler(Init, RequestHandler):
 class SearchHandler(Init, RequestHandler):
 
     def get(self):
-        st = self.get_query_argument('searched_text', '').strip().replace(' ', ' & ')
-        # like_st = '%{}%'.format(st)  # mogrify() не справляется с такой подстановкой
+        st = self.get_query_argument('searched_text', '').strip()
         if st:
-            query = self.cur.mogrify("""SELECT replace(ltree2text(code), '.', '_') AS code, nlevel(code) AS lvl, name
+            query = self.cur.mogrify("""WITH required_codes AS (
+                                             SELECT code
+                                             FROM okato
+                                             WHERE name_vector @@ plainto_tsquery('russian', %s)
+                                             ORDER BY code LIMIT %s
+                                             )
+                                        SELECT replace(ltree2text(code), '.', '_') AS code,
+                                               nlevel(code) AS lvl,
+                                               name
                                         FROM okato
-                                        WHERE code @> ARRAY(SELECT code
-                                                            FROM okato
-                                                            WHERE name_vector @@ plainto_tsquery('russian', %s)
-                                                            ORDER BY code LIMIT %s);""", (st, self.page_rows_limit))
+                                        WHERE code @> ARRAY(select code from required_codes);""", (st, self.limit))
             self.cur.execute(query)
             column_names = [c[0] for c in self.cur.description]
             rows = [dict(zip(column_names, row)) for row in self.cur]
@@ -96,8 +105,6 @@ class SearchHandler(Init, RequestHandler):
 
 
 if __name__ == "__main__":
-    # TODO: сделать настраиваемые адреса/порты, исключения, обработка неверных параметров
-    # Создание соединения на приложение(не на инициализацию обработчиков) вешает запросы из остальных
     application = Application(
         [url(r"/", MainHandler),
          url(r"/manage", ManageHandler),
