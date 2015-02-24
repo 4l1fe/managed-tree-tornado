@@ -41,8 +41,10 @@ def main():
     cur.execute("""INSERT INTO okato (code, razdel, name, centrum, name_vector) VALUES """ + args)  # мульти вставка
     cur.execute("""DELETE FROM okato where name like '%/';
                    CREATE INDEX name_vector_idx ON okato USING gin(name_vector);
+                   CREATE INDEX code_gist_idx ON okato USING gist(code);
+                   CREATE INDEX code_btree_idx ON okato USING btree(code);
                    CREATE OR REPLACE FUNCTION is_ancestor(ltree) RETURNS boolean AS $$
-                       SELECT EXISTS(SELECT 1 FROM okato WHERE code <@ $1 AND code <> $1);
+                       SELECT EXISTS(SELECT 1 FROM okato as t WHERE t.code <@ $1 AND t.code <> $1);
                    $$ LANGUAGE SQL;""")
     conn.commit()
     okato_file.close()
