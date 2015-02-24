@@ -11,6 +11,9 @@
             margin-left: {{ 2*lvl}}%;
         }
     {% end %}
+        div.is_ancestor {
+            color: #78A7DE;
+        }
     </style>
 </head>
 
@@ -27,7 +30,7 @@
 
     <input type="text" style="display: inline">
 
-    <div id="root">
+    <div id="root">OKATO
     {% for row in rows %}
         <div class="l{{ row['lvl'] }}" id="{{ row['code'] }}">{{ row['name'] }} L{{ row['lvl'] }}
         <button class="edit">edit</button>

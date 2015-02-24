@@ -10,7 +10,7 @@ def main():
     conn = psycopg2.connect(dsn)
     cur = conn.cursor()
     cur.execute("""DROP TABLE IF EXISTS okato;
-                   CREATE EXTENSION IF NOT EXISTS ltree;  /*# необходим установленный системный пакет postgresql-contrib*/
+                   CREATE EXTENSION IF NOT EXISTS ltree;  --необходим установленный системный пакет postgresql-contrib
                    CREATE TABLE okato (
                           id serial primary key,
                           code ltree,
@@ -39,12 +39,13 @@ def main():
     okato_gen = okato(reader)
     args = ','.join([cur.mogrify("(%s,%s,%s,%s, (to_tsvector('russian', %s)))", row).decode() for row in okato_gen])
     cur.execute("""INSERT INTO okato (code, razdel, name, centrum, name_vector) VALUES """ + args)  # мульти вставка
+    cur.execute("""DELETE FROM okato where name like '%/';
+                   CREATE INDEX name_vector_idx ON okato USING gin(name_vector);
+                   CREATE OR REPLACE FUNCTION is_ancestor(ltree) RETURNS boolean AS $$
+                       SELECT EXISTS(SELECT 1 FROM okato WHERE code <@ $1 AND code <> $1);
+                   $$ LANGUAGE SQL;""")
     conn.commit()
     okato_file.close()
-    cur.execute("""DELETE FROM okato where name like '%/';""")
-    conn.commit()
-    cur.execute("""CREATE INDEX name_vector_idx ON okato USING gin(name_vector);""")
-    conn.commit()
 
 
 if __name__ == '__main__':
