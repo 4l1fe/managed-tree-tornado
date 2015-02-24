@@ -27,7 +27,6 @@ class MainHandler(Init, RequestHandler):
         lvls = range(1, lvls+1)
         self.cur.execute("""SELECT replace(ltree2text(code), '.', '_') AS code,
                                    nlevel(code) AS lvl,
-                                   is_ancestor(code),
                                    name
                             FROM okato
                             WHERE code ~ '*{0,%s}'
@@ -45,8 +44,7 @@ class MainHandler(Init, RequestHandler):
         if lvl:
             self.cur.execute("""SELECT replace(ltree2text(code), '.', '_') AS code,
                                        nlevel(code) AS lvl,
-                                       name,
-                                       is_ancestor(code)
+                                       name
                                 FROM okato
                                 WHERE code ~ '*{0,%s}'
                                 ORDER BY code LIMIT %s;""", (lvl, self.limit))
@@ -96,8 +94,7 @@ class SearchHandler(Init, RequestHandler):
                                              )
                                         SELECT replace(ltree2text(code), '.', '_') AS code,
                                                nlevel(code) AS lvl,
-                                               name,
-                                               is_ancestor(code)
+                                               name
                                         FROM okato
                                         WHERE code @> ARRAY(select code from search_result);""", (st, self.limit))
             self.cur.execute(query)
