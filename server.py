@@ -27,6 +27,7 @@ class MainHandler(Init, RequestHandler):
         lvls = range(1, lvls+1)
         self.cur.execute("""SELECT replace(ltree2text(code), '.', '_') AS code,
                                    nlevel(code) AS lvl,
+                                   is_ancestor(code),
                                    name
                             FROM okato
                             WHERE code ~ '*{0,%s}'
@@ -44,7 +45,8 @@ class MainHandler(Init, RequestHandler):
         if lvl:
             self.cur.execute("""SELECT replace(ltree2text(code), '.', '_') AS code,
                                        nlevel(code) AS lvl,
-                                       name
+                                       name,
+                                       is_ancestor(code)
                                 FROM okato
                                 WHERE code ~ '*{0,%s}'
                                 ORDER BY code LIMIT %s;""", (lvl, self.limit))
@@ -86,7 +88,7 @@ class SearchHandler(Init, RequestHandler):
     def get(self):
         st = self.get_query_argument('searched_text', '').strip()
         if st:
-            query = self.cur.mogrify("""WITH required_codes AS (
+            query = self.cur.mogrify("""WITH search_result AS (
                                              SELECT code
                                              FROM okato
                                              WHERE name_vector @@ plainto_tsquery('russian', %s)
@@ -94,9 +96,10 @@ class SearchHandler(Init, RequestHandler):
                                              )
                                         SELECT replace(ltree2text(code), '.', '_') AS code,
                                                nlevel(code) AS lvl,
-                                               name
+                                               name,
+                                               is_ancestor(code)
                                         FROM okato
-                                        WHERE code @> ARRAY(select code from required_codes);""", (st, self.limit))
+                                        WHERE code @> ARRAY(select code from search_result);""", (st, self.limit))
             self.cur.execute(query)
             column_names = [c[0] for c in self.cur.description]
             rows = [dict(zip(column_names, row)) for row in self.cur]
@@ -111,7 +114,7 @@ if __name__ == "__main__":
          url(r"/search", SearchHandler)],
         static_path=join(dirname(__file__), 'static'),
         compiled_template_cache=False,
-        compress_response=False,
+        compress_response=True,
         autoreload=False)
 
     application.listen(8888)
