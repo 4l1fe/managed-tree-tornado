@@ -9,10 +9,15 @@
     {% for lvl in lvls %}
         div.l{{ lvl }} {
             margin-left: {{ 2*lvl}}%;
+            display: inline-block;
+        }
+        div.l{{ lvl }}:hover {
+            color: #935C5C;
         }
     {% end %}
         div.is_ancestor {
             color: #78A7DE;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -40,6 +45,7 @@
         <button class="edit">edit</button>
         <button class="delete">delete</button>
         </div>
+        <br>
     {% end %}
     </div>
 </body>
