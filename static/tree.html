@@ -32,7 +32,11 @@
 
     <div id="root">
     {% for row in rows %}
+        {% if row['is_ancestor'] %}
+        <div class="l{{ row['lvl'] }} is_ancestor" id="{{ row['code'] }}">{{ row['name'] }} L{{ row['lvl'] }}
+        {% else %}
         <div class="l{{ row['lvl'] }}" id="{{ row['code'] }}">{{ row['name'] }} L{{ row['lvl'] }}
+        {% end %}
         <button class="edit">edit</button>
         <button class="delete">delete</button>
         </div>

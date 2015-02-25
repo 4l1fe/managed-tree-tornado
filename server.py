@@ -15,6 +15,23 @@ class Init:
 
 class MainHandler(Init, RequestHandler):
 
+    common_query = """WITH filtered AS (
+                            SELECT code,
+                                   name
+                            FROM okato
+                            WHERE code ~ '*{0,%s}'
+                            ORDER BY code
+                            LIMIT %s
+                            )
+                        SELECT replace(ltree2text(t1.code), '.', '_') AS code,
+                               nlevel(t1.code) AS lvl,
+                               EXISTS(SELECT 1
+                                      FROM okato AS t2
+                                      WHERE t1.code @> t2.code
+                                            AND t1.code <> t2.code) AS is_ancestor,
+                               t1.name AS name
+                        FROM filtered AS t1;"""
+
     def get(self):
         """Можно указывать начальный уровень параметром  ?lvl=n"""
         try:
@@ -25,12 +42,7 @@ class MainHandler(Init, RequestHandler):
                             FROM okato;""")
         lvls = self.cur.fetchone()[0]
         lvls = range(1, lvls+1)
-        self.cur.execute("""SELECT replace(ltree2text(code), '.', '_') AS code,
-                                   nlevel(code) AS lvl,
-                                   name
-                            FROM okato
-                            WHERE code ~ '*{0,%s}'
-                            ORDER BY code LIMIT %s;""", (start_lvl, self.limit))  # replace() из-за ошибки
+        self.cur.execute(self.common_query, (start_lvl, self.limit))  # replace() из-за ошибки
                                                                                   # в поиске по селектору
         column_names = [c[0] for c in self.cur.description]
         rows = [dict(zip(column_names, row)) for row in self.cur]
@@ -42,12 +54,7 @@ class MainHandler(Init, RequestHandler):
         except ValueError:
             lvl = 0
         if lvl:
-            self.cur.execute("""SELECT replace(ltree2text(code), '.', '_') AS code,
-                                       nlevel(code) AS lvl,
-                                       name
-                                FROM okato
-                                WHERE code ~ '*{0,%s}'
-                                ORDER BY code LIMIT %s;""", (lvl, self.limit))
+            self.cur.execute(self.common_query, (lvl, self.limit))
 
             column_names = [c[0] for c in self.cur.description]
             rows = [dict(zip(column_names, row)) for row in self.cur]  # при сериализации в json порциями
@@ -86,18 +93,29 @@ class SearchHandler(Init, RequestHandler):
     def get(self):
         st = self.get_query_argument('searched_text', '').strip()
         if st:
-            query = self.cur.mogrify("""WITH search_result AS (
-                                             SELECT code
-                                             FROM okato
-                                             WHERE name_vector @@ plainto_tsquery('russian', %s)
-                                             ORDER BY code LIMIT %s
-                                             )
-                                        SELECT replace(ltree2text(code), '.', '_') AS code,
-                                               nlevel(code) AS lvl,
-                                               name
-                                        FROM okato
-                                        WHERE code @> ARRAY(select code from search_result);""", (st, self.limit))
-            self.cur.execute(query)
+            self.cur.execute("""WITH search_result AS (
+                                     SELECT code,
+                                            name
+                                     FROM okato
+                                     WHERE name_vector @@ plainto_tsquery('russian', %s)
+                                     ORDER BY code
+                                     LIMIT %s
+                                     ), filtered AS (
+                                     SELECT code,
+                                            name
+                                     FROM okato
+                                     WHERE code @> ARRAY(select code from search_result)
+                                     LIMIT %s
+                                     )
+                                SELECT replace(ltree2text(t1.code), '.', '_') AS code,
+                                       nlevel(t1.code) AS lvl,
+                                       EXISTS(SELECT 1
+                                              FROM okato AS t2
+                                              WHERE t1.code @> t2.code
+                                                    AND t1.code <> t2.code) AS is_ancestor,
+                                       t1.name AS name
+                                FROM filtered as t1;""", (st, self.limit, self.limit))
+
             column_names = [c[0] for c in self.cur.description]
             rows = [dict(zip(column_names, row)) for row in self.cur]
             self.write({'rows': rows})
