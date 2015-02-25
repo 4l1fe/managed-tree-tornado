@@ -1,3 +1,20 @@
+var render_rows = function(rows, root) {
+    $.each(rows, function (k, v) { //'.' в id ломает поиск по селектору
+        var is_ancestor = v['is_ancestor'] ? ' is_ancestor' : '';
+        root.append('<div class="l' + v['lvl'] + is_ancestor + '" id="' + v['code'] + '">' + v['name'] + ' L' + v['lvl'] +
+                    '<button class="edit">edit</button>' +
+                    '<button class="delete">delete</button>' +
+                    '</div>' +
+                    '<br>');
+    });
+    $('button.edit').on('click', edit);
+    $('button.delete').on('click', del);
+};
+
+var show_descendants = function() {
+    $(this).
+};
+
 var edit = function() {
     var div = $(this).parent(),
         code = div.attr('id'),
@@ -47,19 +64,11 @@ var search = function(event) {
                     var root = $('#root');
                     root.empty();
                     if (data['rows']) {
-                        $.each(data['rows'], function (k, v) { //'.' в id ломает поиск по селектору
-                            var is_ancestor = v['is_ancestor'] ? ' is_ancestor' : ''
-                            root.append('<div class="l' + v['lvl'] + is_ancestor + '" id="' + v['code'] + '">' + v['name'] + ' L' + v['lvl'] +
-                            '<button class="edit">edit</button>' +
-                            '<button class="delete">delete</button>' +
-                            '</div>');
-                        });
-                        $('button.edit').on('click', edit);
-                        $('button.delete').on('click', del);
-                    }
+                        render_rows(data['rows'], root);
+                    };
                 });
         };
-    }
+    };
 };
 
 var load_data = function() {
@@ -71,15 +80,7 @@ var load_data = function() {
             var root = $('#root');
             root.empty();
             if (data['rows']) {
-                $.each(data['rows'], function (k, v) { //'.' в id ломает поиск по селектору
-                    var is_ancestor = v['is_ancestor'] ? ' is_ancestor' : ''
-                    root.append('<div class="l' + v['lvl'] + is_ancestor +'" id="' + v['code'] + '">' + v['name'] + ' L' + v['lvl'] +
-                    '<button class="edit">edit</button>' +
-                    '<button class="delete">delete</button>' +
-                    '</div>');
-                });
-                $('button.edit').on('click', edit);
-                $('button.delete').on('click', del);
+                render_rows(data['rows'], root);
             };
         });
 };
