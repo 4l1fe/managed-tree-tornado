@@ -2,7 +2,7 @@ import tornado.ioloop
 import psycopg2
 from os.path import dirname, join
 from tornado.web import RequestHandler, Application, url
-from okato_db import dsn
+from okato import dsn
 
 
 class Init:
