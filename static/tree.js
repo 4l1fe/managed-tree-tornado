@@ -48,7 +48,7 @@ var search = function(event) {
                     root.empty();
                     if (data['rows']) {
                         $.each(data['rows'], function (k, v) { //'.' в id ломает поиск по селектору
-                            var is_ancestor = v['is_ancestor'] ? ',is_ancestor' : ''
+                            var is_ancestor = v['is_ancestor'] ? ' is_ancestor' : ''
                             root.append('<div class="l' + v['lvl'] + is_ancestor + '" id="' + v['code'] + '">' + v['name'] + ' L' + v['lvl'] +
                             '<button class="edit">edit</button>' +
                             '<button class="delete">delete</button>' +
@@ -72,7 +72,7 @@ var load_data = function() {
             root.empty();
             if (data['rows']) {
                 $.each(data['rows'], function (k, v) { //'.' в id ломает поиск по селектору
-                    var is_ancestor = v['is_ancestor'] ? ',is_ancestor' : ''
+                    var is_ancestor = v['is_ancestor'] ? ' is_ancestor' : ''
                     root.append('<div class="l' + v['lvl'] + is_ancestor +'" id="' + v['code'] + '">' + v['name'] + ' L' + v['lvl'] +
                     '<button class="edit">edit</button>' +
                     '<button class="delete">delete</button>' +
