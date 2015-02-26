@@ -64,6 +64,27 @@ class MainHandler(Init, RequestHandler):
 
 class ManageHandler(Init, RequestHandler):
 
+    def get(self): #TODO: получать только след уровень
+        code = self.get_query_argument('code').strip().replace('_', '.')
+        if code:
+            self.cur.execute("""SELECT replace(ltree2text(t1.code), '.', '_') AS code,
+                                       nlevel(t1.code) AS lvl,
+                                       EXISTS(SELECT 1
+                                              FROM okato AS t2
+                                              WHERE t1.code @> t2.code
+                                                    AND t1.code <> t2.code) AS is_ancestor,
+                                       t1.name AS name
+                                FROM okato AS t1
+                                WHERE t1.code <@ %s
+                                      AND t1.code <> %s
+                                ORDER BY code
+                                LIMIT %s;""", (code, code, self.limit))
+
+            column_names = [c[0] for c in self.cur.description]
+            rows = [dict(zip(column_names, row)) for row in self.cur]
+            self.write({'rows': rows})
+        self.flush()
+
     def post(self):
         code = self.get_body_argument('code').strip().replace('_', '.')  # из-за ошибки в поиске по селектору
         name = self.get_body_argument('name').strip()
