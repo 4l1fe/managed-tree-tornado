@@ -42,9 +42,11 @@
         {% set row = rows.pop() %}
 
         {% if row['lvl'] < cur_lvl %}
-            {% set cur_lvl = row['lvl'] %}
             {% set ancestors_count -= 1 %}
+            {% for l in range(cur_lvl - row['lvl']) %}
             </div>
+            {% end %}
+            {% set cur_lvl = row['lvl'] %}
         {% end %}
 
         {% if row['lvl'] == cur_lvl %}
@@ -57,13 +59,13 @@
         {% end %}
 
         {% if row['is_ancestor'] %}
-        <div class="l{{ row['lvl'] }}" id="{{ row['code'] }}">
-        <span class="is_ancestor">{{ row['name'] }} L{{ row['lvl'] }}</span>
+            <div class="l{{ row['lvl'] }}" id="{{ row['code'] }}">
+            <span class="is_ancestor">{{ row['name'] }} L{{ row['lvl'] }}</span>
         {% else %}
-        <div class="l{{ row['lvl'] }}" id="{{ row['code'] }}">{{ row['name'] }} L{{ row['lvl'] }}
+            <div class="l{{ row['lvl'] }}" id="{{ row['code'] }}">{{ row['name'] }} L{{ row['lvl'] }}
         {% end %}
-        <button class="edit">edit</button>
-        <button class="delete">delete</button>
+            <button class="edit">edit</button>
+            <button class="delete">delete</button>
     {% end %}
 
     {% for r in range(ancestors_count) %}

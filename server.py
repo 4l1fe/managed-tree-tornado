@@ -13,7 +13,7 @@ class Init:
         self.limit = 2000
 
 
-class MainHandler(Init, RequestHandler):
+class MainHandler(Init, RequestHandler):  #TODO: сортировка неверная, напр 1,10,11,2
 
     common_query = """WITH filtered AS (
                             SELECT code,
