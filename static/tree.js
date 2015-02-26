@@ -1,31 +1,57 @@
-var render_rows = function(rows, root, empty) {
+var render_rows = function(rows, root, cur_lvl) {
+    var row,
+        ancestors_count = 0;
+    rows.reverse();
     root.children('div').remove();
-    $.each(rows, function (k, v) { //'.' в id ломает поиск по селектору
 
-        var tmpl = v['is_ancestor'] ? '<div class="l' + v['lvl'] + '" id="' + v['code'] + '">' +
-                                      '<span class="is_ancestor">' + v['name'] + ' L' + v['lvl'] + '</span>'
-                                    : '<div class="l' + v['lvl'] + '" id="' + v['code'] + '">' +
-                                      v['name'] + ' L' + v['lvl'];
+    while (rows.length !== 0) { // избыточно, т.к. приходит только один уровень ниже?
+        row = rows.pop();
+
+        if (row['lvl'] < cur_lvl) {
+            ancestors_count -= 1;
+            for (var i=0; i < cur_lvl-row['lvl']; i++) {
+                root.append('</div>');
+            }
+            cur_lvl = row['lvl']
+        }
+
+        else if (row['lvl'] == cur_lvl) {
+            root.append('</div>');
+        }
+
+        else if (row['lvl'] > cur_lvl) {
+            cur_lvl = row['lvl'];
+            ancestors_count += 1;
+        }
+
+        var tmpl = row['is_ancestor'] ? '<div class="l' + row['lvl'] + '" id="' + row['code'] + '">' +
+                                      '<span class="is_ancestor">' + row['name'] + ' L' + row['lvl'] + '</span>'
+                                    : '<div class="l' + row['lvl'] + '" id="' + row['code'] + '">' +
+                                      row['name'] + ' L' + row['lvl'];
         tmpl += ' <button class="edit">edit</button>' +
-                ' <button class="delete">delete</button>' +
-                '</div>';
+                ' <button class="delete">delete</button>';
         root.append(tmpl);
-    });
+    }
+
+    for (var i=0; i < ancestors_count; i++) {
+        root.append('</div>')
+    }
 };
 
 var show_descendants = function() {
     var span = $(this),
         div = span.parent(),
+        cur_lvl = div.attr('class').substr(1),
         code = div.attr('id');
 
-    if (code) {
+    if (code && cur_lvl) {
         $.get('http://127.0.0.1:8888/manage?' + $.param({code: code}))
             .fail(function (jqxhr, status, error) {
                 alert(error);
             })
             .done(function (data, status, jqxhr) {
                 if (data['rows']) {
-                    render_rows(data['rows'], div);
+                    render_rows(data['rows'], div, cur_lvl);
                 };
             });
     };
@@ -65,10 +91,8 @@ var del = function() {
                 alert(error);
             })
             .done(function (data, status, jqxhr) { //TODO: можно упростить, удаляя вёртску потомков
-                if (data['rows']) {
-                    $.each(data['rows'], function (index, value) {
-                        $('#' + value).empty();
-                    });
+                if (data['success']) {
+                    div.remove();
                 }
                 ;
             });
@@ -86,7 +110,7 @@ var search = function(event) {
                 .done(function(data, status, jqxhr) {
                     var root = $('#root');
                     if (data['rows']) {
-                        render_rows(data['rows'], root);
+                        render_rows(data['rows'], root, 0);
                     };
                 });
         };
@@ -103,9 +127,8 @@ var load_data = function() {
             .done(function (data, status, jqxhr) {
                 var root = $('#root');
                 if (data['rows']) {
-                    render_rows(data['rows'], root);
-                }
-                ;
+                    render_rows(data['rows'], root, 0);
+                };
             });
     };
 };
