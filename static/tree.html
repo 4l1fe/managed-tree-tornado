@@ -7,17 +7,16 @@
     <script src="/static/tree.js"></script>
     <style>
     {% for lvl in lvls %}
-        div.l{{ lvl }} {
-            margin-left: {{ 2*lvl}}%;
-            display: inline-block;
-        }
-        div.l{{ lvl }}:hover {
-            color: #935C5C;
+        .l{{ lvl }} {
+            padding-left: {{ 10*lvl}}px;
         }
     {% end %}
-        div.is_ancestor {
+        .is_ancestor {
             color: #78A7DE;
             cursor: pointer;
+        }
+        .is_ancestor:hover {
+            color: #935C5C;
         }
     </style>
 </head>
@@ -38,14 +37,14 @@
     <div id="root">
     {% for row in rows %}
         {% if row['is_ancestor'] %}
-        <div class="l{{ row['lvl'] }} is_ancestor" id="{{ row['code'] }}">{{ row['name'] }} L{{ row['lvl'] }}
+        <div class="l{{ row['lvl'] }}" id="{{ row['code'] }}">
+        <span class="is_ancestor">{{ row['name'] }} L{{ row['lvl'] }}</span>
         {% else %}
         <div class="l{{ row['lvl'] }}" id="{{ row['code'] }}">{{ row['name'] }} L{{ row['lvl'] }}
         {% end %}
         <button class="edit">edit</button>
         <button class="delete">delete</button>
         </div>
-        <br>
     {% end %}
     </div>
 </body>
