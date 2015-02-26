@@ -107,11 +107,9 @@ class ManageHandler(Init, RequestHandler):
         code = self.get_query_argument('code').strip().replace('_', '.')
         if code:
             self.cur.execute("""DELETE FROM okato
-                                WHERE code <@ %s
-                                RETURNING replace(ltree2text(code), '.','_') AS code;""", (code,))
+                                WHERE code <@ %s;""", (code,))
             self.conn.commit()
-            rows = self.cur.fetchall()
-            self.write({'rows': rows})
+            self.write({'success': True})
         self.flush()
 
 
