@@ -43,7 +43,7 @@ class MainHandler(Init, RequestHandler):
         lvls = self.cur.fetchone()[0]
         lvls = range(1, lvls+1)
         self.cur.execute(self.common_query, (start_lvl, self.limit))  # replace() из-за ошибки
-                                                                                  # в поиске по селектору
+                                                                      # в поиске по селектору
         column_names = [c[0] for c in self.cur.description]
         rows = [dict(zip(column_names, row)) for row in self.cur]
         self.render("static/tree.html", rows=rows, lvls=lvls, start_lvl=start_lvl)
@@ -64,21 +64,27 @@ class MainHandler(Init, RequestHandler):
 
 class ManageHandler(Init, RequestHandler):
 
-    def get(self): #TODO: получать только след уровень
+    def get(self):
         code = self.get_query_argument('code').strip().replace('_', '.')
         if code:
-            self.cur.execute("""SELECT replace(ltree2text(t1.code), '.', '_') AS code,
+            self.cur.execute("""WITH filtered AS (
+                                     SELECT code,
+                                            name
+                                     FROM okato
+                                     WHERE code <@ %(code)s
+                                           AND code <> %(code)s
+                                           AND code ~ concat(%(code)s, '.*{,1}')::lquery
+                                     ORDER BY code
+                                     LIMIT %(limit)s
+                                     )
+                                SELECT replace(ltree2text(t1.code), '.', '_') AS code,
                                        nlevel(t1.code) AS lvl,
                                        EXISTS(SELECT 1
                                               FROM okato AS t2
                                               WHERE t1.code @> t2.code
                                                     AND t1.code <> t2.code) AS is_ancestor,
                                        t1.name AS name
-                                FROM okato AS t1
-                                WHERE t1.code <@ %s
-                                      AND t1.code <> %s
-                                ORDER BY code
-                                LIMIT %s;""", (code, code, self.limit))
+                                FROM filtered AS t1;""", {'code': code, 'limit': self.limit})
 
             column_names = [c[0] for c in self.cur.description]
             rows = [dict(zip(column_names, row)) for row in self.cur]

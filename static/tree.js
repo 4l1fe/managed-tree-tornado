@@ -84,7 +84,6 @@ var search = function(event) {
                 })
                 .done(function(data, status, jqxhr) {
                     var root = $('#root');
-                    //root.empty();
                     if (data['rows']) {
                         render_rows(data['rows'], root);
                     };
@@ -102,7 +101,6 @@ var load_data = function() {
             })
             .done(function (data, status, jqxhr) {
                 var root = $('#root');
-                //root.empty();
                 if (data['rows']) {
                     render_rows(data['rows'], root);
                 }
