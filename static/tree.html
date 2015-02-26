@@ -8,7 +8,7 @@
     <style>
     {% for lvl in lvls %}
         .l{{ lvl }} {
-            padding-left: {{ 10*lvl}}px;
+            padding-left: 20px;
         }
     {% end %}
         .is_ancestor {
@@ -33,9 +33,29 @@
     </select>
 
     <input type="text" style="display: inline">
-
     <div id="root">
-    {% for row in rows %}
+    {% set cur_lvl = 0 %}
+    {% set ancestors_count = 0 %}
+    {% set rows.reverse() %}
+
+    {% while rows %}
+        {% set row = rows.pop() %}
+
+        {% if row['lvl'] < cur_lvl %}
+            {% set cur_lvl = row['lvl'] %}
+            {% set ancestors_count -= 1 %}
+            </div>
+        {% end %}
+
+        {% if row['lvl'] == cur_lvl %}
+            </div>
+        {% end %}
+
+        {% if row['lvl'] > cur_lvl %}
+            {% set cur_lvl = row['lvl'] %}
+            {% set ancestors_count += 1 %}
+        {% end %}
+
         {% if row['is_ancestor'] %}
         <div class="l{{ row['lvl'] }}" id="{{ row['code'] }}">
         <span class="is_ancestor">{{ row['name'] }} L{{ row['lvl'] }}</span>
@@ -44,6 +64,9 @@
         {% end %}
         <button class="edit">edit</button>
         <button class="delete">delete</button>
+    {% end %}
+
+    {% for r in range(ancestors_count) %}
         </div>
     {% end %}
     </div>

@@ -1,12 +1,13 @@
-var render_rows = function(rows, root) {
-    root.children('div').empty();
+var render_rows = function(rows, root, empty) {
+    root.children('div').remove();
     $.each(rows, function (k, v) { //'.' в id ломает поиск по селектору
+
         var tmpl = v['is_ancestor'] ? '<div class="l' + v['lvl'] + '" id="' + v['code'] + '">' +
                                       '<span class="is_ancestor">' + v['name'] + ' L' + v['lvl'] + '</span>'
                                     : '<div class="l' + v['lvl'] + '" id="' + v['code'] + '">' +
                                       v['name'] + ' L' + v['lvl'];
-        tmpl += '<button class="edit">edit</button>' +
-                '<button class="delete">delete</button>' +
+        tmpl += ' <button class="edit">edit</button>' +
+                ' <button class="delete">delete</button>' +
                 '</div>';
         root.append(tmpl);
     });
@@ -63,10 +64,10 @@ var del = function() {
             .fail(function (jqxhr, status, error) {
                 alert(error);
             })
-            .done(function (data, status, jqxhr) {
+            .done(function (data, status, jqxhr) { //TODO: можно упростить, удаляя вёртску потомков
                 if (data['rows']) {
                     $.each(data['rows'], function (index, value) {
-                        $('#' + value).remove();
+                        $('#' + value).empty();
                     });
                 }
                 ;

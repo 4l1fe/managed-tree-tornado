@@ -10,7 +10,7 @@ class Init:
     def initialize(self):
         self.conn = psycopg2.connect(dsn)
         self.cur = self.conn.cursor()
-        self.limit = 2000;
+        self.limit = 2000
 
 
 class MainHandler(Init, RequestHandler):
