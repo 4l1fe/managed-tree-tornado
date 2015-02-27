@@ -1,44 +1,50 @@
 var render_rows = function(rows, root, cur_lvl) {
     var row,
-        ancestors_count = 0;
-    rows.reverse();
+        tmpl,
+        parent = root,
+        diff = 0;
+    rows.reverse(); // для использование .pop() в цикле while
     root.children('div').remove();
 
-    while (rows.length !== 0) { // избыточно, т.к. приходит только один уровень ниже?
+    while (rows.length !== 0) { // построение иерархии вложенных блоков <div>
         row = rows.pop();
+        tmpl = row['is_ancestor'] ? '<div class="l' + row['lvl'] + '" id="' + row['code'] + '">' +
+                                  '<span class="is_ancestor">' + row['name'] + ' L' + row['lvl'] + '</span>'
+                                  : '<div class="l' + row['lvl'] + '" id="' + row['code'] + '">' +
+                                   row['name'] + ' L' + row['lvl'];
+        tmpl += ' <button class="edit">edit</button>' +
+                ' <button class="delete">delete</button>' +
+                '</div>';
 
         if (row['lvl'] < cur_lvl) {
-            ancestors_count -= 1;
-            for (var i=0; i < cur_lvl-row['lvl']; i++) {
-                root.append('</div>');
-            }
-            cur_lvl = row['lvl']
+            diff = cur_lvl - row['lvl'];
+            cur_lvl = row['lvl'];
+            parent = $(parent.parents().get(diff));
+            parent.append(tmpl);
+            parent = parent.children('div').last();
         }
 
         else if (row['lvl'] == cur_lvl) {
-            root.append('</div>');
+            parent.parent().append(tmpl);
         }
 
         else if (row['lvl'] > cur_lvl) {
             cur_lvl = row['lvl'];
-            ancestors_count += 1;
+            parent.append(tmpl);
+            parent = parent.children('div').last();
         }
-
-        var tmpl = row['is_ancestor'] ? '<div class="l' + row['lvl'] + '" id="' + row['code'] + '">' +
-                                      '<span class="is_ancestor">' + row['name'] + ' L' + row['lvl'] + '</span>'
-                                    : '<div class="l' + row['lvl'] + '" id="' + row['code'] + '">' +
-                                      row['name'] + ' L' + row['lvl'];
-        tmpl += ' <button class="edit">edit</button>' +
-                ' <button class="delete">delete</button>';
-        root.append(tmpl);
-    }
-
-    for (var i=0; i < ancestors_count; i++) {
-        root.append('</div>')
     }
 };
 
-var show_descendants = function() {
+//var collapse = function() {
+//    var span = $(this),
+//        div = span.parent();
+//
+//    div.children('div').remove();
+//    span.one('click', expand);
+//};
+
+var show_descendants = function() { //TODO: добавить сворачивание
     var span = $(this),
         div = span.parent(),
         cur_lvl = div.attr('class').substr(1),
@@ -50,9 +56,8 @@ var show_descendants = function() {
                 alert(error);
             })
             .done(function (data, status, jqxhr) {
-                if (data['rows']) {
+                if (data['rows'])
                     render_rows(data['rows'], div, cur_lvl);
-                };
             });
     };
 };
@@ -71,9 +76,8 @@ var edit = function() {
                 alert(error);
             })
             .done(function (data, status, jqxhr) {
-                if (data['success']) {
+                if (data['success'])
                     div.html(div.html().replace(name, new_name));
-                }
             });
     };
 };
@@ -90,11 +94,9 @@ var del = function() {
             .fail(function (jqxhr, status, error) {
                 alert(error);
             })
-            .done(function (data, status, jqxhr) { //TODO: можно упростить, удаляя вёртску потомков
-                if (data['success']) {
+            .done(function (data, status, jqxhr) {
+                if (data['success'])
                     div.remove();
-                }
-                ;
             });
     };
 };
@@ -109,9 +111,8 @@ var search = function(event) {
                 })
                 .done(function(data, status, jqxhr) {
                     var root = $('#root');
-                    if (data['rows']) {
+                    if (data['rows'])
                         render_rows(data['rows'], root, 0);
-                    };
                 });
         };
     };
@@ -126,9 +127,8 @@ var load_data = function() {
             })
             .done(function (data, status, jqxhr) {
                 var root = $('#root');
-                if (data['rows']) {
+                if (data['rows'])
                     render_rows(data['rows'], root, 0);
-                };
             });
     };
 };
