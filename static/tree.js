@@ -23,11 +23,9 @@ var render_rows = function(rows, root, cur_lvl) {
             parent.append(tmpl);
             parent = parent.children('div').last();
         }
-
         else if (row['lvl'] == cur_lvl) {
             parent.parent().append(tmpl);
         }
-
         else if (row['lvl'] > cur_lvl) {
             cur_lvl = row['lvl'];
             parent.append(tmpl);
@@ -36,21 +34,16 @@ var render_rows = function(rows, root, cur_lvl) {
     }
 };
 
-//var collapse = function() {
-//    var span = $(this),
-//        div = span.parent();
-//
-//    div.children('div').remove();
-//    span.one('click', expand);
-//};
-
-var show_descendants = function() { //TODO: добавить сворачивание
+var show_descendants = function() {
     var span = $(this),
         div = span.parent(),
         cur_lvl = div.attr('class').substr(1),
         code = div.attr('id');
 
-    if (code && cur_lvl) {
+    if (div.children('div').length > 0) {
+        div.children('div').remove();
+    }
+    else if (code && cur_lvl) {
         $.get('http://127.0.0.1:8888/manage?' + $.param({code: code}))
             .fail(function (jqxhr, status, error) {
                 alert(error);
